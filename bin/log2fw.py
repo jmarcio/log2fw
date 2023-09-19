@@ -436,52 +436,6 @@ class MonitorContext():
   #
   #
   #
-  def runOld(self):
-    args = ['/opt/log2fw-tools/bin/jmTail.py']
-    args = [self.config.get('tailprog')]
-    args += self.logfiles
-
-    pid = None
-    try:
-      with Popen(args, stdout=PIPE) as proc:
-        global childPids
-        pid = proc.pid
-        childPids.append(pid)
-        last = 0
-        nevt = 0
-        while not exitFlag:
-          line = str(proc.stdout.readline(), encoding='utf-8').strip()
-          if self.debug:
-            print(line)
-          events = lines_to_events([line], self.substr, self.regex, self.profile)
-          if len(events) > 0:  # 5 ???
-            nevt += 1
-            self.events.extend(events)
-          now = datetime.now().timestamp()
-          if nevt >= 5 and last + 600 < now or last + 1200 < now:
-            last = now
-            nevt = 0
-            # update
-            self.update_blacklist()
-            self.dump_iptables()
-            # save
-            self.dump_events()
-            self.dump_blacklist()
-        proc.terminate()
-        proc.kill()
-    except Exception as e:
-      print('Popen exception {:}'.format(e))
-    finally:
-      # update
-      self.update_blacklist()
-      self.dump_iptables()
-      # save
-      self.dump_events()
-      self.dump_blacklist()
-
-  #
-  #
-  #
   def run(self):
     args = ['/opt/log2fw-tools/bin/jmTail.py']
     args = [self.config.get('tailprog')]
@@ -495,7 +449,7 @@ class MonitorContext():
         pid = proc.pid
         childPids.append(pid)
         last = datetime.now().timestamp()
-        nevt = 0
+        newevts = 0
         while not exitFlag:
           (inp, out, err) = select.select([proc.stdout], [], [], tout)
           if self.debug and len(inp) == 0:
@@ -508,14 +462,14 @@ class MonitorContext():
             events = lines_to_events([line], self.substr, self.regex,
                                      self.profile)
             if len(events) > 0:  # 5 ???
-              nevt += 1
+              newevts += 1
               self.events.extend(events)
 
           now = datetime.now().timestamp()
-          if (nevt >= 5 and last + 120 < now) or (nevt > 0
+          if (newevts >= 5 and last + 120 < now) or (newevts > 0
                                                   and last + tout < now):
             last = now
-            nevt = 0
+            newevts = 0
             # update
             self.update_blacklist()
             self.dump_iptables()
