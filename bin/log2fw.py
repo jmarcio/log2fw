@@ -69,7 +69,7 @@ exitFlag = False
 
 def killChildren():
   #print('* killChildren')
-  #log.log('* killChildren')
+  #log.log('killChildren')
   global exitFlag
   exitFlag = True
   for pid in childPids:
@@ -81,7 +81,7 @@ def killChildren():
 
 
 def sigHandler(signum, frame):
-  #print('* Signal handler called with signal', signum)
+  #print('Signal handler called with signal', signum)
   global exitFlag
   exitFlag = True
   killChildren()
@@ -99,32 +99,32 @@ def now():
 
 
 def decode_conf_str_matches(cfProfile):
-  expr = []
+  substr = []
   regex = []
 
-  expr_lines = cfProfile['expr']
-  expr = []
-  for line in expr_lines.split('\n'):
+  substr_lines = cfProfile['substr']
+  substr = []
+  for line in substr_lines.split('\n'):
     line = line.strip()
-    if line == '':
+    if line == '' or line == '__none__':
       continue
-    expr.append(line)
+    substr.append(line)
 
   re_lines = cfProfile['regex']
   regex = []
   for line in re_lines.split('\n'):
     line = line.strip()
-    if line == '':
+    if line == '' or line == '__none__':
       continue
     regex.append(line)
 
-  return expr, regex
+  return substr, regex
 
 
 #
 #
 #
-def lines_to_events(lines, expr=[], regex=[], profile='apache'):
+def lines_to_events(lines, substr=[], regex=[], profile='apache'):
   #
   #
   #
@@ -185,7 +185,7 @@ def lines_to_events(lines, expr=[], regex=[], profile='apache'):
   events = []
 
   for line in lines:
-    for r in expr:
+    for r in substr:
       if r in line:
         #line = line.decode('utf8')
         tstamp = getDate(line, profile)
@@ -224,7 +224,7 @@ class MonitorContext():
   def __init__(self, cli, profile, config):
     #
     #
-    log.log(f"* MonitorContext init {profile:s} at {time.strftime('%X')}")
+    log.log(f"MonitorContext init {profile:s} at {time.strftime('%X')}")
     self.profile = profile
     self.config = config
 
@@ -268,13 +268,13 @@ class MonitorContext():
     self.dump_events()
     self.dump_blacklist()
 
-    self.expr, self.regex = decode_conf_str_matches(self.config)
-    if self.debug:
-      log.log('* {:10s} - Expr : {:d} - Regex : {:d}'.format(
-        self.profile, len(self.expr), len(self.regex)))
-      log.log('* {:10s} - Logfiles :'.format(self.profile))
+    self.substr, self.regex = decode_conf_str_matches(self.config)
+    if self.verbose:
+      log.log('{:10s} - Substr : {:d} - Regex : {:d}'.format(
+        self.profile, len(self.substr), len(self.regex)))
+      log.log('{:10s} - Logfiles :'.format(self.profile))
       for f in self.logfiles:
-        log.log('  * {:10s} - {:s}'.format(self.profile, f))
+        log.log('  {:10s} - {:s}'.format(self.profile, f))
 
   #
   #
@@ -290,7 +290,7 @@ class MonitorContext():
   #
   #
   def read_events(self):
-    log.log('  * {:10s} - read_events'.format(self.profile))
+    log.log('{:10s} - read_events'.format(self.profile))
 
     fname = f'{self.profile:s}-events.csv'
     fname = os.path.join(self.config['datadir'], fname)
@@ -301,7 +301,8 @@ class MonitorContext():
         if not c in columns:
           del df[c]
       now = datetime.now().timestamp()
-      expire = float(self.config['expire'])
+      expire = self.config.getfloat('expire')
+      wsize = self.config.getfloat('wsize')
       self.df_events = df[df['date'] + expire > now].copy()
     else:
       self.df_events = pd.DataFrame([], columns=columns)
@@ -310,7 +311,7 @@ class MonitorContext():
   #
   #
   def read_blacklist(self):
-    log.log('  * {:10s} - read_blacklist'.format(self.profile))
+    log.log('{:10s} - read_blacklist'.format(self.profile))
 
     fname = f'{self.profile:s}-blacklist.csv'
     fname = os.path.join(self.config['datadir'], fname)
@@ -321,7 +322,8 @@ class MonitorContext():
         if not c in columns:
           del df[c]
       now = datetime.now().timestamp()
-      expire = float(self.config['expire'])
+      expire = self.config.getfloat('expire')
+      wsize = self.config.getfloat('wsize')
       self.df_blacklist = df[df['date'] + expire > now].copy()
     else:
       self.df_blacklist = pd.DataFrame([], columns=columns)
@@ -331,15 +333,15 @@ class MonitorContext():
   #
   def dump_events(self):
     if self.verbose:
-      log.log('  * {:10s} - dump_events    : {:d} data items'.format(
+      log.log('{:10s} - dump_events    : {:d} data items'.format(
         self.profile, len(self.events)))
 
-    columns = ['date', 'address', 'expr']
+    columns = ['date', 'address', 'substr']
     columns = ['date', 'address']
     events = self.events.copy()
     df = pd.DataFrame(events, columns=columns)
-    if 'expr' in columns:
-      del df['expr']
+    if 'substr' in columns:
+      del df['substr']
     fname = f'{self.profile:s}-events.csv'
     fname = os.path.join(self.config['datadir'], fname)
     df.to_csv(fname, index=False)
@@ -349,7 +351,7 @@ class MonitorContext():
   #
   def dump_blacklist(self):
     if self.verbose:
-      log.log('  * {:10s} - dump_blacklist : {:d} data items'.format(
+      log.log('{:10s} - dump_blacklist : {:d} data items'.format(
         self.profile, len(self.blacklist)))
 
     columns = ['date', 'address', 'count']
@@ -365,7 +367,7 @@ class MonitorContext():
   #
   def dump_iptables(self):
     if self.verbose:
-      log.log('  * {:10s} - dump_iptables : {:d} data items'.format(
+      log.log('{:10s} - dump_iptables : {:d} data items'.format(
         self.profile, len(self.blacklist)))
     chain = self.config['chain']
 
@@ -388,7 +390,7 @@ class MonitorContext():
         os.chmod(fpath, 0o755)
 
     try:
-      log.log('  * {:10s} - updating firewall : {:d} data items'.format(
+      log.log('{:10s} - updating firewall : {:d} data items'.format(
         self.profile, len(self.blacklist)))
       cp = run([fpath])
       #log.log("   Result : {:}".format(cp.returncode))
@@ -403,17 +405,18 @@ class MonitorContext():
   #
   #
   def update_blacklist(self):
+    if self.verbose:
+      log.log('{:10s} - updating blacklist'.format(self.profile))
     now = datetime.now().timestamp()
-    expire = float(self.config['expire'])
-    wsize = float(self.config['wsize'])
-    maxerr = int(self.config['maxerr'])
+    expire = self.config.getfloat('expire')
+    wsize = self.config.getfloat('wsize')
+    maxerr = self.config.getint('maxerr')
 
     bl = {e[1]: e[0] for e in self.blacklist}
     for addr in bl.keys():
       if bl[addr] + wsize < now:
-        log.log('* {:10s} - Whitelisting {:s}'.format(self.profile, addr))
+        log.log('{:10s} - Whitelisting {:s}'.format(self.profile, addr))
 
-    columns = ['date', 'address', 'expr']
     columns = ['date', 'address']
     events = self.events.copy()
     df = pd.DataFrame(events, columns=columns)
@@ -428,7 +431,7 @@ class MonitorContext():
       evt = [last, addr]
       self.blacklist.append(evt)
       if not addr in bl.keys():
-        log.log('* {:10s} - Blacklisting {:s}'.format(self.profile, addr))
+        log.log('{:10s} - Blacklisting {:s}'.format(self.profile, addr))
 
   #
   #
@@ -450,7 +453,7 @@ class MonitorContext():
           line = str(proc.stdout.readline(), encoding='utf-8').strip()
           if self.debug:
             print(line)
-          events = lines_to_events([line], self.expr, self.regex, self.profile)
+          events = lines_to_events([line], self.substr, self.regex, self.profile)
           if len(events) > 0:  # 5 ???
             nevt += 1
             self.events.extend(events)
@@ -495,17 +498,14 @@ class MonitorContext():
         nevt = 0
         while not exitFlag:
           (inp, out, err) = select.select([proc.stdout], [], [], tout)
-          if self.debug:
-            log.log('=> select {:d} {:d} {:d}'.format(len(inp), len(out),
-                                                      len(err)))
           if self.debug and len(inp) == 0:
-            log.log('Got a timeout...')
+            log.log('   Got a timeout...')
 
           if len(inp) > 0:
             line = str(proc.stdout.readline(), encoding='utf-8').strip()
             if self.debug:
               print(line)
-            events = lines_to_events([line], self.expr, self.regex,
+            events = lines_to_events([line], self.substr, self.regex,
                                      self.profile)
             if len(events) > 0:  # 5 ???
               nevt += 1
@@ -538,7 +538,7 @@ class MonitorContext():
   #
   #
   def fromfile(self):
-    log.log('* Starting fromfile {:s}'.format(self.profile))
+    log.log('Starting fromfile {:s}'.format(self.profile))
     args = sorted(self.logfiles)
 
     events = []
@@ -550,7 +550,7 @@ class MonitorContext():
           lines = fin.readlines()
           for i in range(0, len(lines)):
             lines[i] = str(lines[i]).strip()
-          events += lines_to_events(lines, self.expr, self.regex, self.profile)
+          events += lines_to_events(lines, self.substr, self.regex, self.profile)
         if len(events) > 0:  # 5 ???
           self.events.extend(events)
       except Exception as e:
@@ -598,9 +598,9 @@ class logThread(threading.Thread):
     self.config = config
 
   def run(self):
-    log.log("* Starting profile " + self.profile)
+    log.log("Starting profile " + self.profile)
     doProfile(self.cli, self.profile, self.config)
-    log.log("* Exiting profile " + self.profile)
+    log.log("Exiting profile " + self.profile)
 
 
 #
@@ -629,6 +629,8 @@ def main(cli, config):
 
   # Create new threads
   for profile in profiles:
+    if not config.getboolean(profile, 'enabled'):
+      continue
     thread = logThread(threadID, cli, profile, config)
     thread.start()
     threads.append(thread)
@@ -639,7 +641,7 @@ def main(cli, config):
     # the following does not work because of lock problems.
     t.join()
 
-  log.log("* Exiting Main Thread")
+  log.log("Exiting Main Thread")
 
   return 0
 
@@ -764,7 +766,7 @@ if __name__ == '__main__':
   import sys
 
   log = jmSyslog.JmLog("log2fw")
-  log.log(f"* Started at {time.strftime('%X')}")
+  log.log(f"Started at {time.strftime('%X')}")
 
   cli = getCliArgs()
 
