@@ -1,0 +1,13 @@
+#! /bin/bash
+
+iptables-restore < /etc/iptables/rules.v4.conf
+
+/opt/fw-tools/bin/mk-friends
+
+/opt/fw-tools/bin/mk-chain -y --chain=AuthSsh  --fname=auth-monitor-ssh.txt 
+/opt/fw-tools/bin/mk-chain -y --chain=AuthSmtp --fname=auth-monitor-postfix.txt 
+/opt/fw-tools/bin/mk-chain -y --chain=Apache   --fname=auth-monitor-apache.txt 
+
+iptables-save    > /etc/iptables/rules.v4
+
+

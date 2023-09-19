@@ -1,0 +1,6 @@
+
+
+MonitorPid=/var/run/auth-monitor-sm-msp.pid
+
+MONITOR_OPTS="--debug "
+

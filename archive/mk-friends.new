@@ -1,0 +1,77 @@
+#! /bin/bash
+
+FwDir=/opt/fw-tools
+
+CfDirs="/etc/auth-monitor $FwDir/etc"
+for dir in $CfDirs
+do
+  echo "dir = $dir"
+  if [ -f "$dir/auth-monitor.conf" ]
+  then
+    ConfDir=$dir
+    break
+  fi
+done
+
+if [ -z "$ConfDir" ]
+then
+  echo "* fw-tools configuration file not found"
+  exit 1
+fi
+
+DataDir=$FwDir/var
+
+Echo=echo
+[ "$USER" == "root" ] && Echo=
+
+FName=friends.txt
+FileIn="$DataDir/$FName"
+FileCf="$ConfDir/auth-monitor.conf"
+
+awk '
+  BEGIN { fTag = 0 }
+  /<\/network>/ { fTag = 0 }
+  fTag == 1 { print $0 }
+  /<network friends>/ { fTag = 1 }
+' $FileCf > $FileIn
+[ -f $FileIn ] || exit 1
+
+mkChainFile()
+{
+  shopt -s nocasematch
+  export Chain=Friends
+  fTag=0
+  while read line
+  do
+    if [[ "$line" =~ "</network>" ]]
+    then 
+      fTag=0
+      continue
+    fi
+    if [[ $fTag == 1 ]]
+    then
+      echo $line
+      continue
+    fi
+    if [[ "$line" =~ "<network $Chain>" ]]
+    then 
+      fTag=1
+      continue
+    fi
+  done < $FileCf > $DataDir/$Chain.txt
+}
+
+Chain=Friends
+
+Friends=$(grep -v '#' $FileIn)
+
+declare -i nAddr
+$Echo iptables -F $Chain
+for ip in $Friends
+do
+  $Echo iptables -A $Chain -p tcp -s $ip -j ACCEPT
+  nAddr=$nAddr+1
+done
+
+printf "Number of Friends... %d\n" $nAddr
+

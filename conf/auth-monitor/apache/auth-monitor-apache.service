@@ -1,0 +1,14 @@
+[Unit]
+Description=Monitor HTTP errors
+After=syslog.target network.target 
+
+[Service]
+Type=simple
+LimitNOFILE=16384
+EnvironmentFile=/etc/default/auth-monitor-apache
+#ExecStartPre=
+ExecStart=/opt/fw-tools/bin/auth-monitor --online --profile apache $MONITOR_OPTS
+#ExecStop=/bin/kill -SIGTERM $(head -1 $MonitorPid)
+
+[Install]
+WantedBy=multi-user.target

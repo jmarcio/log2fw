@@ -1,0 +1,6 @@
+
+
+MonitorPid=/var/run/auth-monitor-ssh-wrapper.pid
+
+MONITOR_OPTS="--debug "
+
