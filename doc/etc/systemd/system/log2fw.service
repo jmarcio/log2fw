@@ -1,0 +1,14 @@
+[Unit]
+Description=Monitor HTTP errors
+After=syslog.target network.target 
+
+[Service]
+Type=simple
+LimitNOFILE=16384
+EnvironmentFile=/etc/default/log2fw
+#ExecStartPre=
+ExecStart=/opt/log2fw-tools/bin/log2fw.py --profile all $MONITOR_OPTS
+#ExecStop=/bin/kill -SIGTERM $(head -1 $MonitorPid)
+
+[Install]
+WantedBy=multi-user.target

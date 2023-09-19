@@ -66,6 +66,7 @@ def dummy(cli):
 childPids = []
 exitFlag = False
 
+
 def killChildren():
   #print('* killChildren')
   #log.log('* killChildren')
@@ -388,7 +389,7 @@ class MonitorContext():
 
     try:
       log.log('  * {:10s} - updating firewall : {:d} data items'.format(
-      self.profile, len(self.blacklist)))
+        self.profile, len(self.blacklist)))
       cp = run([fpath])
       #log.log("   Result : {:}".format(cp.returncode))
     except Exception as e:
@@ -455,7 +456,6 @@ class MonitorContext():
             self.events.extend(events)
           now = datetime.now().timestamp()
           if nevt >= 5 and last + 600 < now or last + 1200 < now:
-          #if True:
             last = now
             nevt = 0
             # update
@@ -496,7 +496,8 @@ class MonitorContext():
         while not exitFlag:
           (inp, out, err) = select.select([proc.stdout], [], [], tout)
           if self.debug:
-            log.log('=> select {:d} {:d} {:d}'.format(len(inp), len(out), len(err)))
+            log.log('=> select {:d} {:d} {:d}'.format(len(inp), len(out),
+                                                      len(err)))
           if self.debug and len(inp) == 0:
             log.log('Got a timeout...')
 
@@ -504,13 +505,15 @@ class MonitorContext():
             line = str(proc.stdout.readline(), encoding='utf-8').strip()
             if self.debug:
               print(line)
-            events = lines_to_events([line], self.expr, self.regex, self.profile)
+            events = lines_to_events([line], self.expr, self.regex,
+                                     self.profile)
             if len(events) > 0:  # 5 ???
               nevt += 1
               self.events.extend(events)
 
           now = datetime.now().timestamp()
-          if (nevt >= 5 and last + 120 < now) or (nevt > 0 and last + tout < now):
+          if (nevt >= 5 and last + 120 < now) or (nevt > 0
+                                                  and last + tout < now):
             last = now
             nevt = 0
             # update
@@ -530,7 +533,6 @@ class MonitorContext():
       # save
       self.dump_events()
       self.dump_blacklist()
-
 
   #
   #
@@ -613,8 +615,6 @@ def main(cli, config):
 
   if True:
     atexit.register(killChildren)
-  else:
-    pass
   if True:
     signal.signal(signal.SIGINT, sigHandler)
     signal.signal(signal.SIGTERM, sigHandler)
@@ -723,10 +723,11 @@ def getCliArgs():
   parser.add_argument('--profile', help='', default=None, type=str)
   parser.add_argument('--reset', help='', action="store_true")
 
-  #parser.add_argument('--int', default=None, help='PID to monitor', type=int)
-  #parser.add_argument('--str', default="String", help='A string', type=str)
-
   cli = parser.parse_args()
+
+  if cli.debug:
+    cli.verbose = True
+
   return cli
 
 
@@ -769,7 +770,6 @@ if __name__ == '__main__':
 
   bAppl = os.path.basename(sys.argv[0])
   bConf = bAppl.replace('.py', '.conf')
-  #bConf = 'fw-tools.conf'
   bDir = '/opt/log2fw-tools/etc'
   fConfig = os.path.join(bDir, bConf)
   config = None

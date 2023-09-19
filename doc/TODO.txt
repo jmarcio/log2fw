@@ -1,0 +1,9 @@
+
+* check bad clients against friends inside log2fw script (easy)
+
+* add 
+  documentation
+  copyright notice
+
+* statistics
+
