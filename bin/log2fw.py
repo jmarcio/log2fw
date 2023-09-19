@@ -18,16 +18,12 @@ import atexit
 from subprocess import *
 import threading
 
-#import asyncio
-
 import time
 
 import glob
 #import psutil
 
-#import fnmatch as fn
 import re
-#import datetime
 from datetime import datetime
 
 import argparse as ap
@@ -39,13 +35,6 @@ import math as m
 import numpy as np
 
 import pandas as pd
-
-#import statistics  as st
-#import scipy.stats as sst
-#import seaborn     as sb
-
-#import matplotlib.pyplot as plt
-
 
 # =============================================================================
 #
@@ -66,9 +55,7 @@ def dummy(cli):
 childPids = []
 exitFlag = False
 
-
 def killChildren():
-  #print('* killChildren')
   #log.log('killChildren')
   global exitFlag
   exitFlag = True
@@ -81,15 +68,11 @@ def killChildren():
 
 
 def sigHandler(signum, frame):
-  #print('Signal handler called with signal', signum)
+  #log.log('Signal handler called with signal', signum)
   global exitFlag
   exitFlag = True
   killChildren()
   #exit(0)
-
-
-exitFlag = False
-
 
 #
 #
@@ -97,7 +80,9 @@ exitFlag = False
 def now():
   return datetime.now().timestamp()
 
-
+#
+#
+#
 def decode_conf_str_matches(cfProfile):
   substr = []
   regex = []
@@ -108,7 +93,7 @@ def decode_conf_str_matches(cfProfile):
     line = line.strip()
     if line == '' or line == '__none__':
       continue
-    substr.append(line)
+    substr.append(line.lower())
 
   re_lines = cfProfile['regex']
   regex = []
@@ -185,6 +170,7 @@ def lines_to_events(lines, substr=[], regex=[], profile='apache'):
   events = []
 
   for line in lines:
+    line = line.lower()
     for r in substr:
       if r in line:
         #line = line.decode('utf8')
@@ -197,7 +183,7 @@ def lines_to_events(lines, substr=[], regex=[], profile='apache'):
         break
 
     for r in regex:
-      if not re.search(r, line) is None:
+      if not re.search(r, line, flags=re.IGNORECASE) is None:
         #line = line.decode('utf8')
         tstamp = getDate(line, profile)
         ip = getIPAddress(line)
@@ -241,12 +227,6 @@ class MonitorContext():
     self.logfiles = lFiles
 
     #
-    self.tasks_log = []
-    self.task_lines = None
-    self.task_events = None
-    self.task_dump = None
-
-    self.loglines = []
     self.events = []
     self.blacklist = []
     self.need_update = False
@@ -272,9 +252,9 @@ class MonitorContext():
     if self.verbose:
       log.log('{:10s} - Substr : {:d} - Regex : {:d}'.format(
         self.profile, len(self.substr), len(self.regex)))
-      log.log('{:10s} - Logfiles :'.format(self.profile))
-      for f in self.logfiles:
-        log.log('  {:10s} - {:s}'.format(self.profile, f))
+    log.log('{:10s} - Logfiles :'.format(self.profile))
+    for f in self.logfiles:
+      log.log('  {:10s} - {:s}'.format(self.profile, f))
 
   #
   #
@@ -389,15 +369,19 @@ class MonitorContext():
       if os.path.isfile(fpath):
         os.chmod(fpath, 0o755)
 
-    try:
-      log.log('{:10s} - updating firewall : {:d} data items'.format(
-        self.profile, len(self.blacklist)))
-      cp = run([fpath])
-      #log.log("   Result : {:}".format(cp.returncode))
-    except Exception as e:
-      log.log('   Exception caught {:}'.format(e))
-    finally:
-      pass
+    if os.geteuid() == 0:
+      try:
+        log.log('{:10s} - updating firewall : {:d} data items'.format(
+          self.profile, len(self.blacklist)))
+        cp = run([fpath])
+        if self.debug:
+          log.log("   Result : {:}".format(cp.returncode))
+      except Exception as e:
+        log.log('   Exception caught {:}'.format(e))
+      finally:
+        pass
+    else:
+      log.log('Only root can update iptables rules')
 
     return Lines
 
