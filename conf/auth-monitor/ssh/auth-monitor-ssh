@@ -1,7 +1,0 @@
-
-#MonitorPid=/var/run/auth-monitor-ssh.pid
-
-#MONITOR_OPTS="--debug"
-MONITOR_OPTS=
-
-

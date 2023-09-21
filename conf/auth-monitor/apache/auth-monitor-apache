@@ -1,7 +1,0 @@
-
-
-MonitorPid=/var/run/auth-monitor-httpd.pid
-
-MONITOR_OPTS=""
-#MONITOR_OPTS="--debug "
-

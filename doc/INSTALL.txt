@@ -1,0 +1,9 @@
+
+
+/var/lib/log2fw
+
+/etc/default/log2fw
+
+/etc/systemd/system/log2fw
+
+/etc/iptables/rules-log2fw.v4

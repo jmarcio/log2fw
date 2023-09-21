@@ -1,8 +1,0 @@
-
-
-#MonitorPid=/var/run/auth-monitor-smtp.pid
-
-#MONITOR_OPTS="--debug"
-MONITOR_OPTS=""
-
-

@@ -83,7 +83,7 @@ def now():
 #
 #
 #
-def decode_conf_str_matches(cfProfile):
+def X_decode_conf_str_matches(cfProfile):
   substr = []
   regex = []
 
@@ -109,7 +109,7 @@ def decode_conf_str_matches(cfProfile):
 #
 #
 #
-def lines_to_events(lines, substr=[], regex=[], profile='apache'):
+def X_lines_to_events(lines, substr=[], regex=[], profile='apache'):
   #
   #
   #
@@ -219,7 +219,7 @@ class MonitorContext():
 
     #
     self.logfiles = []
-    cfFiles = config['logfile'].split('\n')
+    cfFiles = config['logfile'].replace('\n', ' ').split(' ')
     cfFiles = [f for f in cfFiles if f != '']
     lFiles = []
     for f in cfFiles:
@@ -248,7 +248,7 @@ class MonitorContext():
     self.dump_events()
     self.dump_blacklist()
 
-    self.substr, self.regex = decode_conf_str_matches(self.config)
+    self.substr, self.regex = self.decode_conf_str_matches(self.config)
     if self.verbose:
       log.log('{:10s} - Substr : {:d} - Regex : {:d}'.format(
         self.profile, len(self.substr), len(self.regex)))
@@ -417,15 +417,35 @@ class MonitorContext():
       if not addr in bl.keys():
         log.log('{:10s} - Blacklisting {:s}'.format(self.profile, addr))
 
+
+
+
+
+
   #
   #
   #
-  def run(self):
+  def monitor(self):
+    #
+    #
+    #
+    def needUpdate(last, now, newevts, dtdump):
+      if (newevts >= 5 and last + 120 < now):
+        return True
+      if (newevts > 0 and last + dtdump < now):
+        return True
+      if last + 3600 < now:
+        return True
+      return False
+
+    #
+    # main
+    #
     args = ['/opt/log2fw-tools/bin/jmTail.py']
     args = [self.config.get('tailprog')]
     args += self.logfiles
 
-    tout = self.config.getint('dtdump')
+    dtdump = self.config.getint('dtdump')
     pid = None
     try:
       with Popen(args, stdout=PIPE) as proc:
@@ -435,7 +455,7 @@ class MonitorContext():
         last = datetime.now().timestamp()
         newevts = 0
         while not exitFlag:
-          (inp, out, err) = select.select([proc.stdout], [], [], tout)
+          (inp, out, err) = select.select([proc.stdout], [], [], dtdump)
           if self.debug and len(inp) == 0:
             log.log('   Got a timeout...')
 
@@ -443,15 +463,14 @@ class MonitorContext():
             line = str(proc.stdout.readline(), encoding='utf-8').strip()
             if self.debug:
               print(line)
-            events = lines_to_events([line], self.substr, self.regex,
+            events = self.lines_to_events([line], self.substr, self.regex,
                                      self.profile)
             if len(events) > 0:  # 5 ???
               newevts += 1
               self.events.extend(events)
 
           now = datetime.now().timestamp()
-          if (newevts >= 5 and last + 120 < now) or (newevts > 0
-                                                  and last + tout < now):
+          if needUpdate(last, now, newevts, dtdump):
             last = now
             newevts = 0
             # update
@@ -488,7 +507,7 @@ class MonitorContext():
           lines = fin.readlines()
           for i in range(0, len(lines)):
             lines[i] = str(lines[i]).strip()
-          events += lines_to_events(lines, self.substr, self.regex, self.profile)
+          events += self.lines_to_events(lines, self.substr, self.regex, self.profile)
         if len(events) > 0:  # 5 ???
           self.events.extend(events)
       except Exception as e:
@@ -504,6 +523,119 @@ class MonitorContext():
       self.dump_events()
       self.dump_blacklist()
 
+  #
+  #
+  #
+  def lines_to_events(self, lines, substr=[], regex=[], profile='apache'):
+    #
+    #
+    #
+    def getDate(line, profile):
+      if profile == 'apache':
+        m = re.search('\[([^]]+)\]', line)
+        if not m is None:
+          sdate = m.group(1)
+          dtime = datetime.strptime(sdate, '%d/%b/%Y:%H:%M:%S %z')
+          tstamp = dtime.timestamp()
+        else:
+          tstamp = datetime.now().timestamp()
+        return tstamp
+      if profile in ['postfix', 'ssh']:
+        regex = '([A-Z][a-z]{2} +[0-9]{1,2} [0-9]{2}:[0-9]{2}:[0-9]{2})'
+        m = re.search(regex, line)
+        if not m is None:
+          sdate = m.group(1)
+          dtime = datetime.strptime(sdate, '%b %d %H:%M:%S')
+          now = datetime.now()
+          year = now.year
+          if dtime.month > now.month:
+            year -= 1
+          dtime = dtime.replace(year=year, tzinfo=None)
+          tstamp = dtime.timestamp()
+        else:
+          tstamp = datetime.now().timestamp()
+        return tstamp
+
+      return datetime.now().timestamp()
+
+    #
+    #
+    #
+    def getIPAddress(line):
+      expr = '\[([0-9]+(?:\.[0-9]+){3})\]'
+      m = re.search(expr, line)
+      if not m is None:
+        return m.group(1)
+      expr = '([0-9]+(?:\.[0-9]+){3})'
+      m = re.search(expr, line)
+      if not m is None:
+        return m.group(1)
+
+      if False:
+        ip = re.findall(r'[0-9]+(?:\.[0-9]+){3}', line)
+        if len(ip) > 0:
+          return ip[0]
+        ip = re.findall(r'[0-9]+(?:\.[0-9]+){3}', line)
+        if len(ip) > 0:
+          return ip[0]
+
+      return None
+
+    #
+    # M A I N
+    #
+    events = []
+
+    for line in lines:
+      line = line.lower()
+      for r in substr:
+        if r in line:
+          #line = line.decode('utf8')
+          tstamp = getDate(line, profile)
+          ip = getIPAddress(line)
+          if not ip is None:
+            evt = [tstamp, ip, r]
+            evt = [tstamp, ip]
+            events.append(evt)
+          break
+
+      for r in regex:
+        if not re.search(r, line, flags=re.IGNORECASE) is None:
+          #line = line.decode('utf8')
+          tstamp = getDate(line, profile)
+          ip = getIPAddress(line)
+          if not ip is None:
+            evt = [tstamp, ip, r]
+            evt = [tstamp, ip]
+            events.append(evt)
+          break
+
+    return events
+
+  #
+  #
+  #
+  def decode_conf_str_matches(self, cfProfile):
+    substr = []
+    regex = []
+
+    substr_lines = cfProfile['substr']
+    substr = []
+    for line in substr_lines.split('\n'):
+      line = line.strip()
+      if line == '' or line == '__none__':
+        continue
+      substr.append(line.lower())
+
+    re_lines = cfProfile['regex']
+    regex = []
+    for line in re_lines.split('\n'):
+      line = line.strip()
+      if line == '' or line == '__none__':
+        continue
+      regex.append(line)
+
+    return substr, regex
 
 # -----------------------------------------------------------------------------
 #
@@ -518,7 +650,7 @@ def doProfile(cli, profile, config):
   if profile in config.sections():
     ctx = MonitorContext(cli, profile, config[profile])
     if cli.what == 'monitor':
-      ctx.run()
+      ctx.monitor()
     if cli.what == 'fromfile':
       ctx.fromfile()
 
