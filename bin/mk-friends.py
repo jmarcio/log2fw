@@ -73,6 +73,7 @@ def main(cli, config):
   fmt = 'iptables -A {:s} -p tcp -s {:18s} -j ACCEPT'
   for f in friends:
     lines.append(fmt.format(cli.chain, f))
+  lines.append('')
 
   if cli.verbose:
     print('\n'.join(lines))
@@ -215,6 +216,7 @@ if __name__ == '__main__':
 
   config = None
   bConf = os.path.basename(sys.argv[0]).replace('.py', '.conf')
+  bConf = 'log2fw.conf'
   confDirs = ['/etc/log2fw', '/opt/log2fw/etc']
   for bDir in confDirs:
     fConfig = os.path.join(bDir, bConf)
