@@ -1,5 +1,6 @@
 
-
+# Command line options to log2fw.py
+# This options are used when using "systemctl" to start the service
 
 OPTS=""
 

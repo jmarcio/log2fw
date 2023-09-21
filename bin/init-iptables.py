@@ -36,12 +36,12 @@ import pandas as pd
 #
 #
 
+
 #
 #
 #
 def now():
   return datetime.now().timestamp()
-
 
 
 # -----------------------------------------------------------------------------
@@ -50,34 +50,38 @@ def now():
 #
 def main(cli, config):
   sections = config.sections()
-  ok = False
-  friends = None
-  for s in sections:
-    try:
-      friends = config.get(s, 'friends')
-      datadir = config.get(s, 'datadir')
-      ok = True
-    except Exception as e:
-      pass
-    if ok:
-      break
-  if friends is None:
-    return 1
+  datadir = None
 
-  friends = [f for f in friends.split('\n') if f != '']
-
+  #
+  # Create new chains
+  #
   lines = []
   lines.append('#! /bin/bash')
   lines.append('')
-  lines.append('iptables -F {:s}'.format(cli.chain))
-  fmt = 'iptables -A {:s} -p tcp -s {:18s} -j ACCEPT'
-  for f in friends:
-    lines.append(fmt.format(cli.chain, f))
+  lines.append('# Set default policy for chain INPUT')
+  lines.append('iptables -P INPUT ACCEPT')
+
+  hdr = "{:12s} {:10s} {:}".format('Section', 'Chain', 'Enabled')
+  print(hdr)
+  print('-' * len(hdr))
+  for section in sections:
+    chain = config.get(section, "chain")
+    enabled = config.getboolean(section, 'enabled')
+    if datadir is None:
+      datadir = config.get(section, 'datadir')
+
+    print(f"{section:12s} {chain:10s} {enabled:}")
+    if enabled:
+      lines.append(f'# Check and create Chain {chain}')
+      cmd = f'iptables -n -L {chain:10} >/dev/null 2>&1 || iptables -N {chain:}'
+      lines.append(cmd)
+  lines.append('')
 
   if cli.verbose:
+    print()
     print('\n'.join(lines))
 
-  fname = 'friends-iptables.sh'
+  fname = 'iptables-chains.sh'
   fpath = os.path.join(datadir, fname)
   try:
     with open(fpath, 'w') as fout:
@@ -87,13 +91,104 @@ def main(cli, config):
     pass
 
   if cli.doit:
-    try:
-      log.log('* {:10s} - updating iptables firewall'.format(cli.chain))
-      cp = run([fpath])
-      if cp.returncode != 0:
-        log.log("  iptables ERROR : {:}".format(cp.returncode))
-    except Exception as e:
-      log.log('   Exception caught {:}'.format(e))
+    if os.geteuid() == 0:
+      try:
+        cp = run([fpath])
+        if cp.returncode != 0:
+          print("  iptables ERROR : {:}".format(cp.returncode))
+      except Exception as e:
+        print('   Exception caught {:}'.format(e))
+    else:
+      print('==== > ERROR : must be root to use --doit option')
+
+  #
+  #
+  #
+  Lines = []
+  LHeader = [
+    "*filter",
+    ":INPUT DROP [0:0]",
+    ":FORWARD DROP [0:0]",
+    ":OUTPUT ACCEPT [O:O]",
+    ":Apache - [0:0]",
+    ":AuthSmtp - [0:0]",
+    ":AuthSsh - [0:0]",
+    ":Friends - [0:0]",
+  ]
+
+  LInput = [
+    "# Connections managed by log2fw",
+    "-A INPUT -p tcp -m state --state NEW -m tcp -j Friends", "# "
+  ]
+  for section in sections:
+    chain = config.get(section, "chain")
+    enabled = config.getboolean(section, 'enabled')
+    if not enabled:
+      continue
+    pstr = config.get(section, 'ports')
+    ports = [int(x) for x in pstr.split(',')]
+    for p in ports:
+      s = f'-A INPUT -p tcp -m tcp --dport {p:} -j {chain:}'
+      LInput.append(s)
+  rule = "# Accept all connections already open"
+  LInput.append(rule)
+  rule = "-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT"
+  LInput.append(rule)
+
+  rule = "# Accept new connections to log2fw managed ports"
+  LInput.append(rule)
+  for section in sections:
+    chain = config.get(section, "chain")
+    enabled = config.getboolean(section, 'enabled')
+    if not enabled:
+      continue
+    pstr = config.get(section, 'ports')
+    ports = [int(x) for x in pstr.split(',')]
+    for p in ports:
+      s = f'-A INPUT -p tcp -m state --state NEW -m tcp --dport {p:} -j ACCEPT'
+      LInput.append(s)
+  LInput.extend([
+    "# Other protocols",
+    "-A INPUT -p icmp -j ACCEPT",
+    "-A INPUT -i lo -j ACCEPT",
+    "-A INPUT -p udp -m udp --dport 53 -j ACCEPT",
+    "-A INPUT -p tcp -m state --state NEW -m tcp --dport 53 -j ACCEPT",
+    "-A INPUT -j REJECT --reject-with icmp-host-prohibited",
+  ])
+
+  LForward = [
+    "# Chain FORWARD",
+    "-A FORWARD -j REJECT --reject-with icmp-host-prohibited",
+  ]
+  LFriends = [
+    "# Chain Friends (minimal)",
+    "-A Friends -s 127.0.0.0/8 -p tcp -j ACCEPT",
+    "-A Friends -s 10.0.0.0/8 -p tcp -j ACCEPT",
+    "-A Friends -s 192.168.0.0/16 -p tcp -j ACCEPT",
+  ]
+  LTail = [
+    "# Finally... COMMIT all this stuff",
+    "COMMIT",
+    '#'
+  ]
+
+  lines = LHeader + LInput + LForward + LFriends + LTail
+
+  fname = 'rules.log2fw'
+  fpath = os.path.join(datadir, fname)
+  try:
+    with open(fpath, 'w') as fout:
+      fout.write('\n'.join(lines))
+    os.chmod(fpath, 0o755)
+  except Exception as e:
+    pass
+
+  if cli.verbose:
+    print('\n'.join(LHeader))
+    print('\n'.join(LInput))
+    print('\n'.join(LForward))
+    print('\n'.join(LFriends))
+    print('\n'.join(LTail))
 
   return 0
 
@@ -208,16 +303,18 @@ def showArgs(cli, show=False, fName=None):
 if __name__ == '__main__':
   import sys
 
-  log = jmSyslog.JmLog("mkFriends")
+  log = jmSyslog.JmLog("init-iptables")
   #log.log(f"* Started at {time.strftime('%X')}")
 
   cli = getCliArgs()
 
   config = None
   bConf = os.path.basename(sys.argv[0]).replace('.py', '.conf')
-  confDirs = ['/etc/log2fw', '/opt/log2fw/etc']
+  bConf = 'log2fw.conf'
+  confDirs = ['/etc/log2fw', '/opt/log2fw/etc', '/opt/log2fw-tools/etc']
   for bDir in confDirs:
     fConfig = os.path.join(bDir, bConf)
+    print(fConfig)
     if os.path.isfile(fConfig):
       config = appLoadConfigFile(fConfig)
       log.log(f'Using configuration file {fConfig:}')

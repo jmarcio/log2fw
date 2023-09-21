@@ -80,121 +80,6 @@ def sigHandler(signum, frame):
 def now():
   return datetime.now().timestamp()
 
-#
-#
-#
-def X_decode_conf_str_matches(cfProfile):
-  substr = []
-  regex = []
-
-  substr_lines = cfProfile['substr']
-  substr = []
-  for line in substr_lines.split('\n'):
-    line = line.strip()
-    if line == '' or line == '__none__':
-      continue
-    substr.append(line.lower())
-
-  re_lines = cfProfile['regex']
-  regex = []
-  for line in re_lines.split('\n'):
-    line = line.strip()
-    if line == '' or line == '__none__':
-      continue
-    regex.append(line)
-
-  return substr, regex
-
-
-#
-#
-#
-def X_lines_to_events(lines, substr=[], regex=[], profile='apache'):
-  #
-  #
-  #
-  def getDate(line, profile):
-    if profile == 'apache':
-      m = re.search('\[([^]]+)\]', line)
-      if not m is None:
-        sdate = m.group(1)
-        dtime = datetime.strptime(sdate, '%d/%b/%Y:%H:%M:%S %z')
-        tstamp = dtime.timestamp()
-      else:
-        tstamp = datetime.now().timestamp()
-      return tstamp
-    if profile in ['postfix', 'ssh']:
-      regex = '([A-Z][a-z]{2} +[0-9]{1,2} [0-9]{2}:[0-9]{2}:[0-9]{2})'
-      m = re.search(regex, line)
-      if not m is None:
-        sdate = m.group(1)
-        dtime = datetime.strptime(sdate, '%b %d %H:%M:%S')
-        now = datetime.now()
-        year = now.year
-        if dtime.month > now.month:
-          year -= 1
-        dtime = dtime.replace(year=year, tzinfo=None)
-        tstamp = dtime.timestamp()
-      else:
-        tstamp = datetime.now().timestamp()
-      return tstamp
-
-    return datetime.now().timestamp()
-
-  #
-  #
-  #
-  def getIPAddress(line):
-    expr = '\[([0-9]+(?:\.[0-9]+){3})\]'
-    m = re.search(expr, line)
-    if not m is None:
-      return m.group(1)
-    expr = '([0-9]+(?:\.[0-9]+){3})'
-    m = re.search(expr, line)
-    if not m is None:
-      return m.group(1)
-
-    if False:
-      ip = re.findall(r'[0-9]+(?:\.[0-9]+){3}', line)
-      if len(ip) > 0:
-        return ip[0]
-      ip = re.findall(r'[0-9]+(?:\.[0-9]+){3}', line)
-      if len(ip) > 0:
-        return ip[0]
-
-    return None
-
-  #
-  # M A I N
-  #
-  events = []
-
-  for line in lines:
-    line = line.lower()
-    for r in substr:
-      if r in line:
-        #line = line.decode('utf8')
-        tstamp = getDate(line, profile)
-        ip = getIPAddress(line)
-        if not ip is None:
-          evt = [tstamp, ip, r]
-          evt = [tstamp, ip]
-          events.append(evt)
-        break
-
-    for r in regex:
-      if not re.search(r, line, flags=re.IGNORECASE) is None:
-        #line = line.decode('utf8')
-        tstamp = getDate(line, profile)
-        ip = getIPAddress(line)
-        if not ip is None:
-          evt = [tstamp, ip, r]
-          evt = [tstamp, ip]
-          events.append(evt)
-        break
-
-  return events
-
 
 # -----------------------------------------------------------------------------
 #
@@ -248,7 +133,7 @@ class MonitorContext():
     self.dump_events()
     self.dump_blacklist()
 
-    self.substr, self.regex = self.decode_conf_str_matches(self.config)
+    self.substr, self.regex = self.decodeConfigStrMatches(self.config)
     if self.verbose:
       log.log('{:10s} - Substr : {:d} - Regex : {:d}'.format(
         self.profile, len(self.substr), len(self.regex)))
@@ -268,6 +153,12 @@ class MonitorContext():
     return llist
 
   #
+  # #####   ######    ##    #####           #####   #    #  #    #  #####
+  # #    #  #        #  #   #    #          #    #  #    #  ##  ##  #    #
+  # #    #  #####   #    #  #    #  #####   #    #  #    #  # ## #  #    #
+  # #####   #       ######  #    #          #    #  #    #  #    #  #####
+  # #   #   #       #    #  #    #          #    #  #    #  #    #  #
+  # #    #  ######  #    #  #####           #####    ####   #    #  #
   #
   def read_events(self):
     log.log('{:10s} - read_events'.format(self.profile))
@@ -343,7 +234,12 @@ class MonitorContext():
     df.to_csv(fname, index=False)
 
   #
-  #
+  # #    #  #####   #####     ##     #####  ######
+  # #    #  #    #  #    #   #  #      #    #
+  # #    #  #    #  #    #  #    #     #    #####
+  # #    #  #####   #    #  ######     #    #
+  # #    #  #       #    #  #    #     #    #
+  #  ####   #       #####   #    #     #    ######
   #
   def dump_iptables(self):
     if self.verbose:
@@ -417,13 +313,13 @@ class MonitorContext():
       if not addr in bl.keys():
         log.log('{:10s} - Blacklisting {:s}'.format(self.profile, addr))
 
-
-
-
-
-
   #
-  #
+  #      #   ####   #####
+  #      #  #    #  #    #
+  #      #  #    #  #####
+  #      #  #    #  #    #
+  # #    #  #    #  #    #
+  #  ####    ####   #####
   #
   def monitor(self):
     #
@@ -463,7 +359,7 @@ class MonitorContext():
             line = str(proc.stdout.readline(), encoding='utf-8').strip()
             if self.debug:
               print(line)
-            events = self.lines_to_events([line], self.substr, self.regex,
+            events = self.lines2events([line], self.substr, self.regex,
                                      self.profile)
             if len(events) > 0:  # 5 ???
               newevts += 1
@@ -507,7 +403,7 @@ class MonitorContext():
           lines = fin.readlines()
           for i in range(0, len(lines)):
             lines[i] = str(lines[i]).strip()
-          events += self.lines_to_events(lines, self.substr, self.regex, self.profile)
+          events += self.lines2events(lines, self.substr, self.regex, self.profile)
         if len(events) > 0:  # 5 ???
           self.events.extend(events)
       except Exception as e:
@@ -524,9 +420,14 @@ class MonitorContext():
       self.dump_blacklist()
 
   #
+  # #####   ####    ####   #        ####
+  #   #    #    #  #    #  #       #
+  #   #    #    #  #    #  #        ####
+  #   #    #    #  #    #  #            #
+  #   #    #    #  #    #  #       #    #
+  #   #     ####    ####   ######   ####
   #
-  #
-  def lines_to_events(self, lines, substr=[], regex=[], profile='apache'):
+  def lines2events(self, lines, substr=[], regex=[], profile='apache'):
     #
     #
     #
@@ -615,7 +516,7 @@ class MonitorContext():
   #
   #
   #
-  def decode_conf_str_matches(self, cfProfile):
+  def decodeConfigStrMatches(self, cfProfile):
     substr = []
     regex = []
 
@@ -708,7 +609,7 @@ def main(cli, config):
 
   for t in threads:
     #continue
-    # the following does not work because of lock problems.
+    # the following may not work because of lock problems.
     t.join()
 
   log.log("Exiting Main Thread")
@@ -840,20 +741,25 @@ if __name__ == '__main__':
 
   cli = getCliArgs()
 
-  bAppl = os.path.basename(sys.argv[0])
-  bConf = bAppl.replace('.py', '.conf')
-  bDir = '/opt/log2fw-tools/etc'
-  fConfig = os.path.join(bDir, bConf)
   config = None
-  if os.path.isfile(fConfig):
-    config = appLoadConfigFile(fConfig)
+  bConf = os.path.basename(sys.argv[0]).replace('.py', '.conf')
+  confDirs = ['/etc/log2fw', '/opt/log2fw/etc']
+  for bDir in confDirs:
+    fConfig = os.path.join(bDir, bConf)
+    if os.path.isfile(fConfig):
+      config = appLoadConfigFile(fConfig)
+      log.log(f'Using configuration file {fConfig:}')
+      break
+  if config is None:
+    msg = f'===> Configuration file {bConf:} not found'
+    print(msg)
+    sys.exit(1)
 
-  if True:
-    if cli.showconf:
-      appShowConfigFile(config)
-    if cli.showargs:
-      showArgs(cli, True)
-    if cli.showconf or cli.showargs:
-      sys.exit(0)
+  if cli.showconf:
+    appShowConfigFile(config)
+  if cli.showargs:
+    showArgs(cli, True)
+  if cli.showconf or cli.showargs:
+    sys.exit(0)
 
   sys.exit(main(cli, config))

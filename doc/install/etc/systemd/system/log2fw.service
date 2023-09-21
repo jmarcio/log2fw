@@ -1,5 +1,5 @@
 [Unit]
-Description=Monitor HTTP errors
+Description=Monitor log files and generate iptables rules
 After=syslog.target network.target 
 
 [Service]
@@ -7,7 +7,7 @@ Type=simple
 LimitNOFILE=16384
 EnvironmentFile=/etc/default/log2fw
 #ExecStartPre=
-ExecStart=/opt/log2fw-tools/bin/log2fw.py --profile all $MONITOR_OPTS
+ExecStart=/opt/log2fw-tools/bin/log2fw.py --profile all $OPTS
 #ExecStop=/bin/kill -SIGTERM $(head -1 $MonitorPid)
 
 [Install]

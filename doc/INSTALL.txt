@@ -7,3 +7,6 @@
 /etc/systemd/system/log2fw
 
 /etc/iptables/rules-log2fw.v4
+
+/etc/logrotate.d/log3fw
+
