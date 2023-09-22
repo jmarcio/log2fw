@@ -36,6 +36,7 @@ import numpy as np
 
 import pandas as pd
 
+
 # =============================================================================
 #
 #
@@ -55,6 +56,7 @@ def dummy(cli):
 childPids = []
 exitFlag = False
 
+
 def killChildren():
   #log.log('killChildren')
   global exitFlag
@@ -73,6 +75,7 @@ def sigHandler(signum, frame):
   exitFlag = True
   killChildren()
   #exit(0)
+
 
 #
 #
@@ -360,7 +363,7 @@ class MonitorContext():
             if self.debug:
               print(line)
             events = self.lines2events([line], self.substr, self.regex,
-                                     self.profile)
+                                       self.profile)
             if len(events) > 0:  # 5 ???
               newevts += 1
               self.events.extend(events)
@@ -403,7 +406,8 @@ class MonitorContext():
           lines = fin.readlines()
           for i in range(0, len(lines)):
             lines[i] = str(lines[i]).strip()
-          events += self.lines2events(lines, self.substr, self.regex, self.profile)
+          events += self.lines2events(lines, self.substr, self.regex,
+                                      self.profile)
         if len(events) > 0:  # 5 ???
           self.events.extend(events)
       except Exception as e:
@@ -537,6 +541,7 @@ class MonitorContext():
       regex.append(line)
 
     return substr, regex
+
 
 # -----------------------------------------------------------------------------
 #
@@ -678,23 +683,29 @@ def getCliArgs():
   parser.add_argument('--debug', help='', action="store_true")
   parser.add_argument('--verbose', help='', action="store_true")
 
+  parser.add_argument('--conf',
+                      help='Configuration file if not the default one',
+                      default=None,
+                      type=str)
+
   parser.add_argument('--what',
-                      help='What to do (monitor)',
+                      help='What to do (monitor|fromfile)',
                       default='monitor',
                       type=str)
-  parser.add_argument('--showconf', help='', action="store_true")
-  parser.add_argument('--showargs', help='', action="store_true")
+  parser.add_argument('--showconf',
+                      help='Show configuration file contents',
+                      action="store_true")
+  parser.add_argument('--showargs',
+                      help='Show cli options',
+                      action="store_true")
 
-  parser.add_argument('--dir',
-                      help='',
-                      default='/var/lib/auth-monitor',
+  parser.add_argument('--profile',
+                      help='Profile to monitor or all',
+                      default='all',
                       type=str)
-  parser.add_argument('--dout',
-                      help='Output directory',
-                      default='tmp',
-                      type=str)
-  parser.add_argument('--profile', help='', default=None, type=str)
-  parser.add_argument('--reset', help='', action="store_true")
+  parser.add_argument('--reset',
+                      help='Clear previous events and blacklist data',
+                      action="store_true")
 
   cli = parser.parse_args()
 
@@ -742,14 +753,21 @@ if __name__ == '__main__':
   cli = getCliArgs()
 
   config = None
-  bConf = os.path.basename(sys.argv[0]).replace('.py', '.conf')
-  confDirs = ['/etc/log2fw', '/opt/log2fw/etc']
-  for bDir in confDirs:
-    fConfig = os.path.join(bDir, bConf)
-    if os.path.isfile(fConfig):
-      config = appLoadConfigFile(fConfig)
-      log.log(f'Using configuration file {fConfig:}')
-      break
+  if cli.conf is None:
+    bConf = os.path.basename(sys.argv[0]).replace('.py', '.conf')
+    confDirs = ['/etc/log2fw', '/opt/log2fw/etc']
+    for bDir in confDirs:
+      fConfig = os.path.join(bDir, bConf)
+      if os.path.isfile(fConfig):
+        config = appLoadConfigFile(fConfig)
+        log.log(f'Using configuration file {fConfig:}')
+        break
+  else:
+    bConf = cli.conf
+    if os.path.isfile(cli.conf):
+      config = appLoadConfigFile(cli.conf)
+      log.log(f'Using configuration file {cli.conf:}')
+
   if config is None:
     msg = f'===> Configuration file {bConf:} not found'
     print(msg)

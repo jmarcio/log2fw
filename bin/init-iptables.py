@@ -64,6 +64,7 @@ def main(cli, config):
   hdr = "{:12s} {:10s} {:}".format('Section', 'Chain', 'Enabled')
   print(hdr)
   print('-' * len(hdr))
+  lines.append('# Check managed chains')
   for section in sections:
     chain = config.get(section, "chain")
     enabled = config.getboolean(section, 'enabled')
@@ -72,9 +73,12 @@ def main(cli, config):
 
     print(f"{section:12s} {chain:10s} {enabled:}")
     if enabled:
-      lines.append(f'# Check and create Chain {chain}')
       cmd = f'iptables -n -L {chain:10} >/dev/null 2>&1 || iptables -N {chain:}'
       lines.append(cmd)
+  chain = 'Friends'
+  lines.append(f'# Create Chain {chain}')
+  cmd = f'iptables -n -L {chain:10} >/dev/null 2>&1 || iptables -N {chain:}'
+  lines.append(cmd)
   lines.append('')
 
   if cli.verbose:

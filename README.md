@@ -6,6 +6,11 @@
 
 The idea comes back to the beginning of years 2000. At those days we needed a solution to to this on Sun Solaris boxes. The first version of `log2fw` was written in Perl and had another name. So now, I've decided to rewrite it from scratch under Python with some lacking features and some improvements. But the main idea remains the same : continuos monitoring of log files looking for regular expressions.
 
+## Features
+
+* Monitor log files and generate iptables rules based on substrings and regular expressions found in log files
+* highly configurable.  
+
 ## Requirements
 
 To run `log2fw`, you just need a Linux box with :
@@ -38,21 +43,54 @@ chown root: /etc/default/log2fw
 
 ## Configure log2fw (/etc/log2fw/log2fw.conf)
 
+Configuration file is self-explanatory (I hope). `default` section contains default values for all profiles.
+
+There are three pre-configured profiles : `apache`, `postfix` and `ssh`. Take a look to see if it fits your needs and adapt them.
+
+There are also three other "placeholder" profiles : `cyrus`, `dovecot` and `zimbra`. If you use them, just complete configuration, mainly with substrings and regular expressions. `zimbra` profile is particular as it integrates different parts of software with different log formats. If you want to use log2fw to monitor zimbra log files, you'll probably need to split it in multiple profiles : MTA, MSP (use postfix profile) and IMAP or POP profiles.
+
 ## iptables configuration
 
+Initial `iptables` configuration may be a critical operation. So, it's recommended to do it manually. Hopefully, two scripts - `init-iptables.py` and `mk-friends.py` - can help you.
+
 ### iptables log2fw rules
+
+First of all, run `init-iptables.py` script. This will create two files inside `/var/lib/log2fw` directory : 
+
+* `iptables-chains` - a shell script to create iptables chains used by log2fw
+* `rules.log2fw`- an iptables rules files in the format used by `iptables-save` and `iptables-restore`.
 
 ~~~
 /opt/log2fw/bin/init-iptables.py --verbose
 ~~~
 
+The second part of the following, integrating log2fw rules, may be more complex if you already use iptables for something else. In this case, you must merge `rules.save` and `rules.log2fw` files to fit your needs. If this is not the case you may just execute the following commands.
+
+~~~
+cd /var/lib/log2fw
+# Create iptables chains for each profile managed by log2fw
+./iptables-chains.sh
+# save your current iptables rules
+iptables-save > rules.save
+# OPTIONAL but RECOMMENDED : test log2fw rules
+iptables-apply -t 60 rules.log2fw
+# apply them
+iptables-restore < rules.log2fw
+~~~
+
 ### Friends IP network addresses
+
+If you modified `friends` options in your configuration file, adding or removing IP addresses or networks, you shall run this script (as root). You must run this script each time you modify this option in your configuration file.
 
 ~~~
 /opt/log2fw/bin/mk-friends.py --chain Friends --verbose --doit
 ~~~
 
+A file `friends-iptables.sh` will be created inside directory  `/var/lib/log2fw` directory. If you use option `--doit`, iptables rules will be updated. If not, you must run `friends-iptables.sh` bash script manually.
+
 ## starting log2fw
+
+Finally, just start `log2fw` daemon, check its log files and enjoy.
 
 ~~~
 systemctl daemon-reload

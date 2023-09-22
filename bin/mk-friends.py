@@ -209,7 +209,7 @@ def showArgs(cli, show=False, fName=None):
 if __name__ == '__main__':
   import sys
 
-  log = jmSyslog.JmLog("mkFriends")
+  log = jmSyslog.JmLog("mk-friends")
   #log.log(f"* Started at {time.strftime('%X')}")
 
   cli = getCliArgs()
