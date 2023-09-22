@@ -8,8 +8,11 @@ The idea comes back to the beginning of years 2000. At those days we needed a so
 
 ## Features
 
-* Monitor log files and generate iptables rules based on substrings and regular expressions found in log files
-* highly configurable.  
+* Monitor log files and generate iptables rules based on substrings and regular expressions found in log files;
+* easy configuration;
+* comes with three configured profiles : `ssh`, `apache` and `postfix`. Create new profiles based on included placeholder profiles;
+* improve profiles just adding new substrings and regular expressions to look for in log files;
+* a single instance will manage all configured and enabled profiles;
 
 ## Requirements
 
@@ -39,6 +42,9 @@ chown -hR root: /etc/log2fw
 
 cp -p doc/install/etc/default/log2fw /etc/default
 chown root: /etc/default/log2fw
+
+cp -p doc/install/etc/rsyslog.d/40-log2fw.conf /etc/rsyslog.d
+systemctl restart rsyslog
 ~~~
 
 ## Configure log2fw (/etc/log2fw/log2fw.conf)
