@@ -340,7 +340,6 @@ class MonitorContext():
     #
     # main
     #
-    args = ['/opt/log2fw-tools/bin/jmTail.py']
     args = [self.config.get('tailprog')]
     args += self.logfiles
 
