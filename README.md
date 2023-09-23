@@ -51,7 +51,11 @@ systemctl restart rsyslog
 
 Configuration file is self-explanatory (I hope). `default` section contains default values for all profiles.
 
-There are three pre-configured profiles : `apache`, `postfix` and `ssh`. Take a look to see if it fits your needs and adapt them.
+There are three pre-configured profiles : `apache`, `postfix`, `ssh` and 'nginx`. Take a look to see if it fits your needs and adapt them.
+
+Two of the most important configuration options are `substr` and `regex`. This options define what will be looked in log files. It's important to understand them : *substr* are pieces of text that will be looked as they are defined while *regex* are regular expressions and can be used to define complex strings. Whenever possible privilegiate *substr* as subsring matching check is much faster than *regex*.
+
+You can define *substr* and *regex* both inside `log2fw.conf` file or inside text files inside configuration directory. File names have the pattern `ProfileName-substr.txt` and `ProfileName-regex.txt`. Empty lines or lines beginning with an '#' are ignored. It seems less error prone to use these files than putting data inside the configuration file.
 
 There are also three other "placeholder" profiles : `cyrus`, `dovecot` and `zimbra`. If you use them, just complete configuration, mainly with substrings and regular expressions. `zimbra` profile is particular as it integrates different parts of software with different log formats. If you want to use log2fw to monitor zimbra log files, you'll probably need to split it in multiple profiles : MTA, MSP (use postfix profile) and IMAP or POP profiles.
 

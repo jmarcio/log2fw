@@ -103,6 +103,7 @@ class MonitorContext():
     self.profile = profile
     self.config = config
 
+    self.cli = cli
     self.debug = cli.debug
     self.verbose = cli.verbose
 
@@ -524,21 +525,46 @@ class MonitorContext():
     substr = []
     regex = []
 
-    substr_lines = cfProfile['substr']
+    # sub strings
     substr = []
+    fpath = os.path.join(self.cli.cfdir, f'{self.profile:s}-substr.txt')
+    if os.path.isfile(fpath):
+      with open(fpath, 'r') as fin:
+        for line in fin.readlines():
+          line = line.strip()
+          if line != '' and not line.startswith('#'):
+            substr.append(line)
+
+    substr_lines = cfProfile['substr']
     for line in substr_lines.split('\n'):
       line = line.strip()
       if line == '' or line == '__none__':
         continue
       substr.append(line.lower())
 
+    if self.debug:
+      for l in substr:
+        log.log('  substr ' + l)
+
+    # regex
+    fpath = os.path.join(self.cli.cfdir, f'{self.profile:s}-regex.txt')
+    if os.path.isfile(fpath):
+      with open(fpath, 'r') as fin:
+        for line in fin.readlines():
+          line = line.strip()
+          if line != '' and not line.startswith('#'):
+            regex.append(line)
+
     re_lines = cfProfile['regex']
-    regex = []
     for line in re_lines.split('\n'):
       line = line.strip()
       if line == '' or line == '__none__':
         continue
       regex.append(line)
+
+    if self.debug:
+      for l in regex:
+        log.log('  regex  ' + l)
 
     return substr, regex
 
@@ -765,6 +791,7 @@ if __name__ == '__main__':
       if os.path.isfile(fConfig):
         config = appLoadConfigFile(fConfig)
         log.log(f'Using configuration file {fConfig:}')
+        cli.conf = fConfig
         break
   else:
     bConf = cli.conf
@@ -776,6 +803,8 @@ if __name__ == '__main__':
     msg = f'===> Configuration file {bConf:} not found'
     print(msg)
     sys.exit(1)
+
+  cli.cfdir = os.path.dirname(cli.conf)
 
   if cli.showconf:
     appShowConfigFile(config)
