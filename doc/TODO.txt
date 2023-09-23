@@ -1,9 +1,23 @@
 
 * check bad clients against friends inside log2fw script (easy)
 
-* add 
+* add
   documentation
   copyright notice
 
 * statistics
+
+* IPv6
+
+* other profiles (which priority order ???) :
+  * dovecot,
+  * zimbra,
+  * nginx (apache ?),
+  * tomcat,
+  * cyrus,
+  * sendmail,
+  * squid,
+  * ...
+
+
 

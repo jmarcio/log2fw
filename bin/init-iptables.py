@@ -26,7 +26,7 @@ from datetime import datetime
 import argparse as ap
 import configparser as cp
 import jmSyslog
-import jmTail
+from  jmVersion import *
 
 import math as m
 import numpy as np
@@ -65,6 +65,7 @@ def main(cli, config):
   print(hdr)
   print('-' * len(hdr))
   lines.append('# Check managed chains')
+
   for section in sections:
     chain = config.get(section, "chain")
     enabled = config.getboolean(section, 'enabled')
@@ -81,10 +82,6 @@ def main(cli, config):
   lines.append(cmd)
   lines.append('')
 
-  if cli.verbose:
-    print()
-    print('\n'.join(lines))
-
   fname = 'iptables-chains.sh'
   fpath = os.path.join(datadir, fname)
   try:
@@ -93,6 +90,11 @@ def main(cli, config):
     os.chmod(fpath, 0o755)
   except Exception as e:
     pass
+
+  if cli.verbose:
+    print()
+    print('{:s} {:^40s} {:s}'.format('=' * 16, fpath, '=' * 16))
+    print('\n'.join(lines))
 
   if cli.doit:
     if os.geteuid() == 0:
@@ -106,19 +108,18 @@ def main(cli, config):
       print('==== > ERROR : must be root to use --doit option')
 
   #
+  # Define iptables rules
   #
-  #
+  sections = [s for s in sections if config.getboolean(s, 'enabled')]
   Lines = []
   LHeader = [
     "*filter",
-    ":INPUT DROP [0:0]",
+    ":INPUT ACCEPT [0:0]",
     ":FORWARD DROP [0:0]",
-    ":OUTPUT ACCEPT [O:O]",
-    ":Apache - [0:0]",
-    ":AuthSmtp - [0:0]",
-    ":AuthSsh - [0:0]",
-    ":Friends - [0:0]",
+    ":OUTPUT ACCEPT [0:0]",
   ]
+  for s in sections + ['Friends']:
+    LHeader.append(f':{s:} - [0:0]')
 
   LInput = [
     "# Connections managed by log2fw",
@@ -188,6 +189,7 @@ def main(cli, config):
     pass
 
   if cli.verbose:
+    print('{:s} {:^40s} {:s}'.format('=' * 16, fpath, '=' * 16))
     print('\n'.join(LHeader))
     print('\n'.join(LInput))
     print('\n'.join(LForward))
@@ -257,6 +259,7 @@ def getCliArgs():
 
   parser.add_argument('--debug', help='', action="store_true")
   parser.add_argument('--verbose', help='', action="store_true")
+  parser.add_argument('--version', help='', action="store_true")
 
   parser.add_argument('--chain',
                       help='What to do (monitor)',
@@ -311,6 +314,9 @@ if __name__ == '__main__':
   #log.log(f"* Started at {time.strftime('%X')}")
 
   cli = getCliArgs()
+  if cli.version:
+    print(VersionStr())
+    sys.exit(0)
 
   config = None
   bConf = os.path.basename(sys.argv[0]).replace('.py', '.conf')

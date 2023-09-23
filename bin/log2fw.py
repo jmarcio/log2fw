@@ -30,6 +30,7 @@ import argparse as ap
 import configparser as cp
 import jmSyslog
 import jmTail
+from jmVersion import *
 
 import math as m
 import numpy as np
@@ -681,6 +682,7 @@ def getCliArgs():
 
   parser.add_argument('--debug', help='', action="store_true")
   parser.add_argument('--verbose', help='', action="store_true")
+  parser.add_argument('--version', help='', action="store_true")
 
   parser.add_argument('--conf',
                       help='Configuration file if not the default one',
@@ -750,6 +752,9 @@ if __name__ == '__main__':
   log.log(f"Started at {time.strftime('%X')}")
 
   cli = getCliArgs()
+  if cli.version:
+    print(VersionStr())
+    sys.exit(0)
 
   config = None
   if cli.conf is None:
