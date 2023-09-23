@@ -1,0 +1,3 @@
+sshd.*: Failed (password|keyboard-interactive) for .+ from \S+
+sshd.* User .* from .* not allowed because not listed in AllowUsers
+sshd.* Unable to negotiate with .+ no matching key exchange method found

@@ -1,0 +1,3 @@
+\\x16\\x03\\x01
+GET /(web|site|news|test|shop|cms|wp|wp1|wp2|core|dev|env)/
+GET /(admin|boaform|admin|vpn|geoserver|owa|.git)/

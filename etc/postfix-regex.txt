@@ -1,0 +1,5 @@
+postfix/.* SASL LOGIN authentication failed
+postfix/smtpd.* lost connection after AUTH
+postfix/smtpd.* disconnect from .* auth=0/[0-9]+
+postfix/smtpd.* disconnect from .* data=0/[0-9]+
+postfix/smtpd.* disconnect from .* rcpt=0/[0-9]+

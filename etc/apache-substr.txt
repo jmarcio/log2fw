@@ -1,0 +1,25 @@
+CONNECT
+GET /sitemap
+GET /.env
+GET /admin
+GET http
+GET /wp-login.php
+GET /wp-
+GET /admin
+GET /login
+GET /auth
+POST /boaform/admin/formLogin
+PROXY TCP
+PRI * HTTP
+GET /shell
+/.vscode
+XDEBUG_SESSION_START
+phpmyadmin
+GET /db
+GET /admin
+GET /sql
+GET /mysql
+GET /phpmy
+phpinfo
+setup.php
+Mozilla/5.0 zgrab/
