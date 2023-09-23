@@ -775,7 +775,7 @@ if __name__ == '__main__':
   import sys
 
   log = jmSyslog.JmLog("log2fw")
-  log.log(f"Started at {time.strftime('%X')}")
+  log.log(f"{VersionStr():s} - Started at {time.strftime('%X')}")
 
   cli = getCliArgs()
   if cli.version:
