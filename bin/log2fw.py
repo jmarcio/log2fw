@@ -396,7 +396,12 @@ class MonitorContext():
   #
   def fromfile(self):
     log.log('Starting fromfile {:s}'.format(self.profile))
-    args = sorted(self.logfiles)
+    if not cli.logfile is None:
+      if not os.path.isfile(cli.logfile):
+        return 1
+      args = [cli.logfile]
+    else:
+      args = sorted(self.logfiles)
 
     events = []
     for fname in args:
@@ -423,6 +428,8 @@ class MonitorContext():
       # save
       self.dump_events()
       self.dump_blacklist()
+
+    return 0
 
   #
   # #####   ####    ####   #        ####
@@ -639,8 +646,6 @@ def main(cli, config):
     threadID += 1
 
   for t in threads:
-    #continue
-    # the following may not work because of lock problems.
     t.join()
 
   log.log("Exiting Main Thread")
@@ -667,9 +672,6 @@ def appLoadConfigFile(fconfig=None):
   config = cp.ConfigParser(interpolation=cp.ExtendedInterpolation(),
                            default_section="defaults",
                            strict=True)
-
-  config.BOOLEAN_STATES['Vrai'] = True
-  config.BOOLEAN_STATES['Faux'] = False
 
   config.read(fconfig)
 
@@ -708,7 +710,9 @@ def getCliArgs():
 
   parser.add_argument('--debug', help='', action="store_true")
   parser.add_argument('--verbose', help='', action="store_true")
-  parser.add_argument('--version', help='', action="store_true")
+  parser.add_argument('--version',
+                      help='Show version and exits',
+                      action="store_true")
 
   parser.add_argument('--conf',
                       help='Configuration file if not the default one',
@@ -718,6 +722,10 @@ def getCliArgs():
   parser.add_argument('--what',
                       help='What to do (monitor|fromfile)',
                       default='monitor',
+                      type=str)
+  parser.add_argument('--logfile',
+                      help='Use only with a specific profile and what=fromfile',
+                      default=None,
                       type=str)
   parser.add_argument('--showconf',
                       help='Show configuration file contents',

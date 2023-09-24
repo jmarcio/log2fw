@@ -118,8 +118,11 @@ def main(cli, config):
     ":FORWARD DROP [0:0]",
     ":OUTPUT ACCEPT [0:0]",
   ]
-  for s in sections + ['Friends']:
-    LHeader.append(f':{s:} - [0:0]')
+  for s in sections:
+    chain = config.get(s, 'chain')
+    LHeader.append(f':{chain:} - [0:0]')
+  chain = 'Friends'
+  LHeader.append(f':{chain:} - [0:0]')
 
   LInput = [
     "# Connections managed by log2fw",
