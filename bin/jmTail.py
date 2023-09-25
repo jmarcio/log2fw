@@ -127,6 +127,7 @@ if __name__ == '__main__':
         sys.stdout.write(line + '\n')
         sys.stdout.flush()
     except Exception as e:
+      print(f'Exception when running Tail : {e:}')
       pass
     finally:
       pass
@@ -169,7 +170,7 @@ if __name__ == '__main__':
   except KeyboardInterrupt:
     pass
   except Exception as e:
-    pass
+    print(f'Exception when running Tail : {e:}')
   finally:
     pass
 

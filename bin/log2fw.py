@@ -15,13 +15,12 @@ import select
 
 import signal
 import atexit
-from subprocess import *
+import subprocess as sp
 import threading
 
 import time
 
 import glob
-#import psutil
 
 import re
 from datetime import datetime
@@ -29,12 +28,9 @@ from datetime import datetime
 import argparse as ap
 import configparser as cp
 import jmSyslog
-import jmTail
-from jmVersion import *
+from jmVersion import VersionStr
 
-import math as m
 import numpy as np
-
 import pandas as pd
 
 
@@ -67,7 +63,7 @@ def killChildren():
     try:
       os.kill(pid, signal.SIGTERM)
     except Exception as e:
-      pass
+      print(f'Exception when killing child process {pid:} : {e:}')
 
 
 def sigHandler(signum, frame):
@@ -178,7 +174,7 @@ class MonitorContext():
           del df[c]
       now = datetime.now().timestamp()
       expire = self.config.getfloat('expire')
-      wsize = self.config.getfloat('wsize')
+      #wsize = self.config.getfloat('wsize')
       self.df_events = df[df['date'] + expire > now].copy()
     else:
       self.df_events = pd.DataFrame([], columns=columns)
@@ -199,7 +195,7 @@ class MonitorContext():
           del df[c]
       now = datetime.now().timestamp()
       expire = self.config.getfloat('expire')
-      wsize = self.config.getfloat('wsize')
+      #wsize = self.config.getfloat('wsize')
       self.df_blacklist = df[df['date'] + expire > now].copy()
     else:
       self.df_blacklist = pd.DataFrame([], columns=columns)
@@ -274,7 +270,7 @@ class MonitorContext():
       try:
         log.log('{:10s} - updating firewall : {:d} data items'.format(
           self.profile, len(self.blacklist)))
-        cp = run([fpath])
+        cp = sp.run([fpath])
         if self.debug:
           log.log("   Result : {:}".format(cp.returncode))
       except Exception as e:
@@ -293,7 +289,7 @@ class MonitorContext():
     if self.verbose:
       log.log('{:10s} - updating blacklist'.format(self.profile))
     now = datetime.now().timestamp()
-    expire = self.config.getfloat('expire')
+    #expire = self.config.getfloat('expire')
     wsize = self.config.getfloat('wsize')
     maxerr = self.config.getint('maxerr')
 
@@ -348,7 +344,7 @@ class MonitorContext():
     dtdump = self.config.getint('dtdump')
     pid = None
     try:
-      with Popen(args, stdout=PIPE) as proc:
+      with sp.Popen(args, stdout=sp.PIPE) as proc:
         global childPids
         pid = proc.pid
         childPids.append(pid)
@@ -550,8 +546,8 @@ class MonitorContext():
       substr.append(line.lower())
 
     if self.debug:
-      for l in substr:
-        log.log('  substr ' + l)
+      for sstr in substr:
+        log.log('  substr ' + sstr)
 
     # regex
     fpath = os.path.join(self.cli.cfdir, f'{self.profile:s}-regex.txt')
@@ -570,8 +566,8 @@ class MonitorContext():
       regex.append(line)
 
     if self.debug:
-      for l in regex:
-        log.log('  regex  ' + l)
+      for rexpr in regex:
+        log.log('  regex  ' + rexpr)
 
     return substr, regex
 
@@ -780,7 +776,6 @@ def showArgs(cli, show=False, fName=None):
 #  ####   ######     #
 #
 if __name__ == '__main__':
-  import sys
 
   log = jmSyslog.JmLog("log2fw")
   log.log(f"{VersionStr():s} - Started at {time.strftime('%X')}")

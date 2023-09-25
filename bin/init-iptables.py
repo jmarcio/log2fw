@@ -11,35 +11,18 @@
 
 import os
 import sys
-import glob
-import select
-
-import signal
-import atexit
 from subprocess import *
-import threading
-
-import re
-import time
 from datetime import datetime
 
 import argparse as ap
 import configparser as cp
 import jmSyslog
-from  jmVersion import *
-
-import math as m
-import numpy as np
-import pandas as pd
+from  jmVersion import VersionStr
 
 # -----------------------------------------------------------------------------
 #
 #
 
-
-#
-#
-#
 def now():
   return datetime.now().timestamp()
 
@@ -89,6 +72,7 @@ def main(cli, config):
       fout.write('\n'.join(lines))
     os.chmod(fpath, 0o755)
   except Exception as e:
+    print(f'Exception when opening file {fpath:} : {e:}')
     pass
 
   if cli.verbose:
@@ -103,7 +87,7 @@ def main(cli, config):
         if cp.returncode != 0:
           print("  iptables ERROR : {:}".format(cp.returncode))
       except Exception as e:
-        print('   Exception caught {:}'.format(e))
+        print(f'Exception when running {fpath:} : {e:}')
     else:
       print('==== > ERROR : must be root to use --doit option')
 
@@ -111,7 +95,6 @@ def main(cli, config):
   # Define iptables rules
   #
   sections = [s for s in sections if config.getboolean(s, 'enabled')]
-  Lines = []
   LHeader = [
     "*filter",
     ":INPUT ACCEPT [0:0]",
@@ -189,7 +172,7 @@ def main(cli, config):
       fout.write('\n'.join(lines))
     os.chmod(fpath, 0o755)
   except Exception as e:
-    pass
+    print(f'Exception when opening file {fpath:} : {e:}')
 
   if cli.verbose:
     print('{:s} {:^40s} {:s}'.format('=' * 16, fpath, '=' * 16))
@@ -311,7 +294,6 @@ def showArgs(cli, show=False, fName=None):
 #  ####   ######     #
 #
 if __name__ == '__main__':
-  import sys
 
   log = jmSyslog.JmLog("init-iptables")
   #log.log(f"* Started at {time.strftime('%X')}")

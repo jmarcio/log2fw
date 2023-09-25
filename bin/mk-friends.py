@@ -11,26 +11,16 @@
 
 import os
 import sys
-import glob
-import select
 
-import signal
-import atexit
-from subprocess import *
-import threading
+import subprocess as sp
 
-import re
-import time
 from datetime import datetime
 
 import argparse as ap
 import configparser as cp
 import jmSyslog
-from  jmVersion import *
+from  jmVersion import VersionStr
 
-import math as m
-import numpy as np
-import pandas as pd
 
 # -----------------------------------------------------------------------------
 #
@@ -58,7 +48,7 @@ def main(cli, config):
       datadir = config.get(s, 'datadir')
       ok = True
     except Exception as e:
-      pass
+      print(f'Exception when getting configuration options : {e:}')
     if ok:
       break
   if friends is None:
@@ -85,12 +75,12 @@ def main(cli, config):
       fout.write('\n'.join(lines))
     os.chmod(fpath, 0o755)
   except Exception as e:
-    pass
+    print(f'Exception when opening file {fpath:} : {e:}')
 
   if cli.doit:
     try:
       log.log('* {:10s} - updating iptables firewall'.format(cli.chain))
-      cp = run([fpath])
+      cp = sp.run([fpath])
       if cp.returncode != 0:
         log.log("  iptables ERROR : {:}".format(cp.returncode))
     except Exception as e:
@@ -208,7 +198,6 @@ def showArgs(cli, show=False, fName=None):
 #  ####   ######     #
 #
 if __name__ == '__main__':
-  import sys
 
   log = jmSyslog.JmLog("mk-friends")
   #log.log(f"* Started at {time.strftime('%X')}")
