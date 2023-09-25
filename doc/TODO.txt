@@ -9,10 +9,13 @@
 
 * IPv6
 
+* put class MonitorContext in a module in separated file (jmMonitor ?)
+
+* Deprecate options regex and substr in log2fw.conf file
+
 * other profiles (which priority order ???) :
   * dovecot,
   * zimbra,
-  * nginx (apache ?),
   * tomcat,
   * cyrus,
   * sendmail,

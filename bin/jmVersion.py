@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-#  jmsyslog.py
+#  jmVersion.py
 #
 #  Copyright 2023 José Marcio Martins da Cruz <martins@jose-marcio.org>
 #
@@ -31,20 +31,29 @@
 #  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
+#  Description :
+#
+#  History :
+#     20/09/2023 - Initial release
 #
 
+import sys
+
 _version_ = '1.0'
+
 
 def Version():
   return _version_
 
+
 def VersionStr():
   return f'log2fw v{_version_:}'
 
+
 def main(args):
-    print(VersionStr())
-    return 0
+  print(VersionStr())
+  return 0
+
 
 if __name__ == '__main__':
-    import sys
-    sys.exit(main(sys.argv))
+  sys.exit(main(sys.argv))
