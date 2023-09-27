@@ -558,14 +558,6 @@ class MonitorContext():
 
     # sub strings
     substr = []
-    fpath = os.path.join(self.cli.cfdir, f'{self.profile:s}-substr.txt')
-    if os.path.isfile(fpath):
-      with open(fpath, 'r') as fin:
-        for line in fin.readlines():
-          line = line.strip()
-          if line != '' and not line.startswith('#'):
-            substr.append(line)
-
     substr_lines = cfProfile['substr']
     for line in substr_lines.split('\n'):
       line = line.strip()
@@ -573,19 +565,7 @@ class MonitorContext():
         continue
       substr.append(line.lower())
 
-    if self.debug:
-      for sstr in substr:
-        log.log('  substr ' + sstr)
-
     # regex
-    fpath = os.path.join(self.cli.cfdir, f'{self.profile:s}-regex.txt')
-    if os.path.isfile(fpath):
-      with open(fpath, 'r') as fin:
-        for line in fin.readlines():
-          line = line.strip()
-          if line != '' and not line.startswith('#'):
-            regex.append(line)
-
     re_lines = cfProfile['regex']
     for line in re_lines.split('\n'):
       line = line.strip()
@@ -593,7 +573,43 @@ class MonitorContext():
         continue
       regex.append(line)
 
+    fpath = os.path.join(self.cli.cfdir, f'matches-{self.profile:s}.txt')
+    if cli.debug:
+      log.log(f'Reading file {fpath}')
+    if os.path.isfile(fpath):
+      with open(fpath, 'r') as fin:
+        lineno = 0
+        state = None
+        Lines = fin.readlines()
+        for line in Lines:
+          lineno += 1
+          if self.debug:
+            log.log(f'Line {lineno:4d} : {line}')
+          line = line.strip()
+          if not re.match('\s*$', line) is None:
+            continue
+          if not re.match('\s*#', line) is None:
+            continue
+          m = re.match('\s*<(substr|regex)>.*', line)
+          if not m is None:
+            state = m.group(1)
+            continue
+          m = re.match('\s*</(substr|regex)>.*', line)
+          if not m is None:
+            state = None
+            continue
+          if not state is None:
+            if state == 'regex':
+              regex.append(line)
+              continue
+            if state == 'substr':
+              substr.append(line)
+              continue
+          log.log(f'Error at line {lineno:} : {line:}')
+
     if self.debug:
+      for sstr in substr:
+        log.log('  substr ' + sstr)
       for rexpr in regex:
         log.log('  regex  ' + rexpr)
 

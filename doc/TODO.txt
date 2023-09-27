@@ -13,6 +13,8 @@
 
 * Deprecate options regex and substr in log2fw.conf file
 
+* Eventually unify configuration files xxx-substr.txt and xxx-regex.txt ?
+
 * other profiles (which priority order ???) :
   * dovecot,
   * zimbra,

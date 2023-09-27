@@ -39,8 +39,11 @@
 
 import sys
 import syslog
+from jmVersion import VersionStr
 
-
+#
+#
+#
 class JmLog:
   facilities = {
     "auth": syslog.LOG_AUTH,
@@ -94,11 +97,20 @@ class JmLog:
   facility = syslog.LOG_LOCAL3
   priority = syslog.LOG_INFO
 
-  def __init__(self, ident=sys.argv[0], facility="local3"):
+  #
+  #
+  #
+  def __init__(self, ident=sys.argv[0], facility="local3", priority="info"):
     if facility in self.facilities.keys():
       self.facility = self.facilities[facility]
+    if priority in self.priorities.keys():
+      self.priority = self.priorities[priority]
+
     syslog.openlog(ident, logoption=syslog.LOG_PID, facility=self.facility)
 
+  #
+  #
+  #
   def log(self, line, priority='info'):
     if priority in self.priorities.keys():
       pri = self.priorities[priority]
@@ -106,8 +118,26 @@ class JmLog:
       pri = self.priority
     syslog.syslog(pri, line)
 
+  #
+  #
+  #
+  def __call__(self, msg='', priority='info'):
+    if msg == '':
+      return
+    if priority in self.priorities.keys():
+      pri = self.priorities[priority]
+    else:
+      pri = self.priority
+    syslog.syslog(pri, msg)
 
+
+#
+#
+#
 def main(args):
+
+  log = JmLog('jmSyslog')
+  log(msg = f'Test jmSyslog ({VersionStr():})')
   return 0
 
 

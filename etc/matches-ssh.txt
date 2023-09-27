@@ -1,3 +1,15 @@
-sshd.*: Failed (password|keyboard-interactive|none) for .+ from \S+
+#
+# regex
+#
+<regex>
+sshd.*: Failed (password|keyboard-interactive|none) for .+ from S+
 sshd.* User .* from .* not allowed because not listed in AllowUsers
 sshd.* Unable to negotiate with .+ no matching key exchange method found
+</regex>
+
+#
+# substr
+#
+<substr>
+</substr>
+

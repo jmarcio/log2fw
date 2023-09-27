@@ -1,0 +1,13 @@
+#
+# regex
+#
+<regex>
+</regex>
+
+#
+# substr
+#
+<substr>
+auth: pam_unix(dovecot:auth): authentication failure
+</substr>
+
