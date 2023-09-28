@@ -244,7 +244,7 @@ class MonitorContext():
       del df['substr']
     fname = f'{self.profile:s}-events.csv'
     fname = os.path.join(self.config['datadir'], fname)
-    df.to_csv(fname, index=False)
+    df.to_csv(fname, index=False, float_format = "%.2f")
 
   #
   #
@@ -260,7 +260,7 @@ class MonitorContext():
     df = pd.DataFrame(blacklist, columns=columns)
     fname = f'{self.profile:s}-blacklist.csv'
     fname = os.path.join(self.config['datadir'], fname)
-    df.to_csv(fname, index=False)
+    df.to_csv(fname, index=False, float_format = "%.2f")
 
   #
   # #    #  #####   #####     ##     #####  ######
@@ -628,6 +628,9 @@ class MonitorContext():
 def doProfile(cli, profile, config):
   if profile in config.sections():
     ctx = MonitorContext(cli, profile, config[profile])
+    if len(ctx.logfiles) == 0:
+      log.log(f"ERROR : no logfile found for profile {profile:}")
+      return
     if cli.what == 'monitor':
       ctx.monitor()
     if cli.what == 'fromfile':
